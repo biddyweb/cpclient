@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.intel.cpclient.server
+Exec=@prefix@/bin/cpclient
+

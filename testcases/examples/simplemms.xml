@@ -1,0 +1,31 @@
+<?xml version="1.0"?> 
+<!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN" "http://www.wapforum.org/DTD/prov.dtd"> 
+<wap-provisioningdoc version="1.0">
+	<characteristic type="NAPDEF">
+		<parm name="NAME" value="test" /> 
+		<parm name="NAPID" value="nd1" /> 
+		<parm name="NAP-ADDRESS" value="nap.address" /> 
+		<parm name="BEARER" value="GSM-GPRS" /> 
+		<parm name="NAP-ADDRTYPE" value="APN" /> 
+	</characteristic>
+
+	<characteristic type="PXLOGICAL">
+		<parm name="NAME" value="proxy" />
+		<parm name="PROXY-ID" value="logical" /> 
+		<characteristic type="PXPHYSICAL">
+			<parm name="PHYSICAL-PROXY-ID" value="physical" /> 
+			<parm name="PXADDR" value="127.0.0.1" /> 
+			<parm name="TO-NAPID" value="nd1" />
+			<characteristic type="PORT">
+				<parm name="PORTNBR" value="8080" />
+			</characteristic>
+		</characteristic>
+	</characteristic>
+
+	<characteristic type="APPLICATION">
+		<parm name="APPID" value="w4" />
+		<parm name="TO-PROXY" value="logical" />
+		<parm name="ADDR" value="http://mms.myoperator" />
+	</characteristic>
+
+</wap-provisioningdoc>

@@ -1,0 +1,123 @@
+{
+   g_type_init
+   Memcheck:Leak
+   ...
+   fun:g_type_init
+   ...
+}
+
+{
+   clone
+   Memcheck:Leak
+   ...
+   fun:start_thread
+   fun:clone
+}
+
+{
+   g_bus_own_name
+   Memcheck:Leak
+   ...
+   fun:g_bus_own_name
+   fun:main
+}
+
+{
+   g_dbus_node_info_new_for_xml
+   Memcheck:Leak
+   ...
+   fun:g_dbus_node_info_new_for_xml
+   fun:main
+}
+
+{
+   g_type_register_static
+   Memcheck:Leak
+   ...
+   fun:g_type_register_static
+   ...
+}
+
+{
+   g_type_add_interface_static
+   Memcheck:Leak
+   ...
+   fun:g_type_add_interface_static
+   ...
+}
+
+{
+   g_dbus_proxy_new_for_bus
+   Memcheck:Leak
+   ...
+   fun:g_type_class_ref
+   ...
+   fun:g_dbus_proxy_new_for_bus
+   ...
+   fun:main
+}
+
+{
+   g_simple_async_result_complete
+   Memcheck:Leak
+   ...
+   fun:g_simple_async_result_complete
+   ...
+   fun:main
+}
+
+{
+   g_dbus_address_get_stream_sync
+   Memcheck:Leak
+   ...
+   fun:g_dbus_address_get_stream_sync
+   ...
+}
+
+{
+    g_type_class_ref
+    Memcheck:Leak
+    ...
+    fun:g_type_class_ref
+    ...
+}
+
+{
+    g_type_register_fundamental
+    Memcheck:Leak
+    ...
+    fun:g_type_register_fundamental
+    ...
+}
+
+{
+    __nss_database_lookup
+    Memcheck:Leak
+    ...
+    fun:__nss_database_lookup
+    ...
+}
+
+{
+    allocate_dtv
+    Memcheck:Leak
+    ...
+    fun:allocate_dtv
+    ...
+}
+
+{
+    on_name_owner_changed
+    Memcheck:Leak
+    ...
+    fun:on_name_owner_changed
+    ...
+}
+
+{
+    standard_calloc
+    Memcheck:Leak
+    ...
+    fun:standard_calloc
+    ...
+}

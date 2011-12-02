@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN"
+"http://www.wapforum.org/DTD/prov.dtd">
+<wap-provisioningdoc version="1.0">
+
+  <characteristic type="APPLICATION">
+    <parm name="APPID" value="w7"/>
+    <parm name="PROVIDER-ID" value="dmserver"/>
+    <parm name="NAME" value="DM Server"/>
+
+    <characteristic type="APPADDR">
+      <parm name="ADDR" value="http://127.0.0.1/dm"/>
+      <characteristic type="PORT">
+        <parm name="PORTNBR" value="8080"/>
+      </characteristic>
+    </characteristic>
+
+    <characteristic type="APPAUTH">
+      <parm name="AAUTHTYPE" value="DIGEST"/>
+      <parm name="AAUTHLEVEL" value="APPSRV"/>
+      <parm name="AAUTHNAME" value="username"/>
+      <parm name="AAUTHSECRET" value="password"/>
+    </characteristic>
+
+    <characteristic type="APPAUTH">
+      <parm name="AAUTHTYPE" value="DIGEST"/>
+      <parm name="AAUTHLEVEL" value="CLIENT"/>
+      <parm name="AAUTHNAME" value="username"/>
+      <parm name="AAUTHSECRET" value="password"/>
+    </characteristic>
+  </characteristic>
+
+</wap-provisioningdoc>

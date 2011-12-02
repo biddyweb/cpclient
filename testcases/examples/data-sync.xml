@@ -1,0 +1,24 @@
+<?xml version="1.0"?> 
+<!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN" "http://www.wapforum.org/DTD/prov.dtd"> 
+<wap-provisioningdoc version="1.0">
+
+  <characteristic type="APPLICATION">
+    <parm name="APPID" value="w5"/>
+    <parm name="PROVIDER-ID" value="dslocal"/>
+    <parm name="NAME" value="Data Sync Account"/>
+    <parm name="ADDR" value="http://127.0.0.1/syncme"/>
+    <characteristic type="APPAUTH">
+      <parm name="AAUTHLEVEL" value="APPSRV"/>
+      <parm name="AAUTHTYPE" value="BASIC"/>
+      <parm name="AAUTHNAME" value="username"/>
+      <parm name="AAUTHSECRET" value="password"/>
+    </characteristic>
+    <characteristic type="RESOURCE">
+      <parm name="URI" value="./addressbook/myaddresses"/>
+      <parm name="AACCEPT" value="text/x-vcard"/>
+      <parm name="SYNCTYPE" value="1"/>
+    </characteristic>
+  </characteristic>
+
+</wap-provisioningdoc>
+

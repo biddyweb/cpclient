@@ -1,0 +1,19 @@
+<?xml version="1.0"?> 
+<!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN" "http://www.wapforum.org/DTD/prov.dtd"> 
+<wap-provisioningdoc version="1.0">
+
+  <characteristic type="APPLICATION"> 
+    <parm name="APPID" value="w2"/> 
+    <characteristic type="RESOURCE">
+      <parm name="URI" value="http://www.intel.com"/>
+      <parm name="NAME" value="Intel"/>
+      <parm name="STARTPAGE"/>
+    </characteristic>    
+    <characteristic type="RESOURCE">
+      <parm name="NAME" value="Open Source at Intel"/>
+      <parm name="URI" value="http://software.intel.com/sites/oss"/>
+    </characteristic>
+  </characteristic>
+  
+</wap-provisioningdoc>
+

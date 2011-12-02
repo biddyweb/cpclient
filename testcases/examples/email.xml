@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<!DOCTYPE wap-provisioningdoc PUBLIC "-//WAPFORUM//DTD PROV 1.0//EN"
+"http://www.wapforum.org/DTD/prov.dtd">
+<wap-provisioningdoc version="1.0">
+  <characteristic type="APPLICATION">
+    <parm name="APPID" value="110"/>
+    <parm name="PROVIDER-ID" value="localmail"/>
+    <parm name="NAME" value="Local Email"/>
+    <characteristic type="APPADDR">
+      <parm name="ADDR" value="pop.localhost"/>
+      <characteristic type="PORT">
+	<parm name="PORTNBR" value="995"/>
+	<parm name="SERVICE" value="995"/>
+      </characteristic>
+    </characteristic>
+    <characteristic type="APPAUTH">
+      <parm name="AAUTHNAME" value="user"/>
+      <parm name="AAUTHSECRET" value="password"/>
+    </characteristic>
+  </characteristic>
+  <characteristic type="APPLICATION">
+    <parm name="APPID" value="25"/>
+    <parm name="PROVIDER-ID" value="localmail"/>
+    <parm name="NAME" value="Local Email"/>
+    <parm name="FROM" value="user@localhost"/>
+    <characteristic type="APPADDR">
+      <parm name="ADDR" value="smtp.localhost"/>
+      <characteristic type="PORT">
+	<parm name="PORTNBR" value="465"/>
+	<parm name="SERVICE" value="465"/>
+      </characteristic>
+    </characteristic>
+    <characteristic type="APPAUTH">
+      <parm name="AAUTHNAME" value="username"/>
+      <parm name="AAUTHSECRET" value="password"/>
+    </characteristic>
+  </characteristic>
+</wap-provisioningdoc>
+

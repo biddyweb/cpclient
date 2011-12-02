@@ -1,0 +1,85 @@
+Introduction:
+-------------
+
+The CPClient is an open source implementation of the OMA Client
+Provisioning (CP).  OMA CP is a standardised device management
+protocol that describes how application and connection settings can be
+provisioned over the air after a device has left the factory.
+
+Compiling the CPClient:
+-----------------
+
+The CPClient is build using autotools and gcc.  It also has a number
+of dependencies on third party libraries, notably glib, libxml2, libwbxml2
+and gnutls.  Development versions of these libraries need to be installed
+before the CPClient can be compiled.  In addition, the CPClient's documentation
+is all written in doxygen.  So if you would like to read the documentation,
+which we highly recommend you do, you should also install doxygen.  On Ubuntu
+the requisite dependencies can be installed with the following commands.
+
+sudo apt-get install autoconf
+sudo apt-get install libdbus-1-dev
+sudo apt-get install libxml2-dev
+sudo apt-get install libxml2-dev
+sudo apt-get install libwbxml2-dev
+sudo apt-get install libgnutls-dev
+sudo apt-get install libglib2.0-dev
+sudo apt-get install doxygen
+
+The CPClient also depends on another component called Provman.  It communicates
+with Provman via d-Bus and so it does not link directly with it.  This means
+that the CPClient can be compiled and run even if Provman is not installed on
+your system.  However, if Provman is not installed, the CPClient will be
+unable to provision any settings.  Provman is not included in Linux
+distributions and needs to be downloaded and compiled manually.  The code
+for Provman is hosted and github and can be retrieved as follows:
+
+git://github.com/otcshare/provman.git
+
+Please refer to the Provman documentation for more information.
+
+Once all the dependencies are installed all you need to do is to create
+the configure files, run configure, and then make and install the CPClient.
+This can all be done with 4 commands.
+
+autoreconf -i
+./configure
+make install
+sudo make install-strip
+
+Configure Options:
+------------------
+
+--enable-logging
+
+Enables logging.  Logging is disabled by default.  Log files are written
+to the /tmp/cpclient-$USER.log.  Logging should never be enabled on production
+builds.  It will slow down the CPClient and can create security issues as
+sensitive information such as email passwords may be recorded in the log files.
+
+--enable-tests
+
+This feature is disabled by default.  If enabled, the test cases stored in
+the testcases directory are copied to $prefix/lib/cpclient/test during
+make install.
+
+--enable-docs
+
+The documentation is built by default if doxygen is installed on the system.  To
+disable run configure with --enable-docs="no" or --disable-docs.  The
+documentation is stored in docs/doxygen/html and will be installed to
+$prefix/share/doc/cpclient when make install is run.
+
+--enable-overwrite
+
+This option is enabled by default.  It can be disabled by setting
+--enable-overwrite="no" or by using --disable-overwrite.  When enabled
+it allows existing accounts to be re-provisioned.  Please see the doxygen
+documentation for more information.
+
+--enable-werror
+
+This option is enabled by default.  To disable use --enable-werror="no" or
+--disable-werror.  If enabled, all warnings are treated as errors during
+compilation.  Should be enabled during development to ensure that errors do
+not creep into the code base.
