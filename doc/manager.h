@@ -19,7 +19,7 @@
  *   the #GetVersion command could be executed.
 */
 
-void GetVersion();
+string GetVersion();
 
 /*!
  * \brief Creates a com.intel.cpclient.PushMessage object from
