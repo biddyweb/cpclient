@@ -2,14 +2,14 @@ Introduction:
 -------------
 
 The CPClient is an open source implementation of the OMA Client
-Provisioning (CP).  OMA CP is a standardised device management
+Provisioning (CP) standard.  OMA CP is a device management
 protocol that describes how application and connection settings can be
 provisioned over the air after a device has left the factory.
 
 Compiling the CPClient:
 -----------------
 
-The CPClient is build using autotools and gcc.  It also has a number
+The CPClient is built using autotools and gcc.  It also has a number
 of dependencies on third party libraries, notably glib, libxml2, libwbxml2
 and gnutls.  Development versions of these libraries need to be installed
 before the CPClient can be compiled.  In addition, the CPClient's documentation
@@ -55,7 +55,8 @@ Configure Options:
 Enables logging.  Logging is disabled by default.  Log files are written
 to the /tmp/cpclient-$USER.log.  Logging should never be enabled on production
 builds.  It will slow down the CPClient and can create security issues as
-sensitive information such as email passwords may be recorded in the log files.
+sensitive information such as provisioned email passwords may be recorded in
+the log files.
 
 --enable-tests
 
@@ -66,7 +67,7 @@ make install.
 --enable-docs
 
 The documentation is built by default if doxygen is installed on the system.  To
-disable run configure with --enable-docs="no" or --disable-docs.  The
+disable, run configure with --enable-docs="no" or --disable-docs.  The
 documentation is stored in docs/doxygen/html and will be installed to
 $prefix/share/doc/cpclient when make install is run.
 
