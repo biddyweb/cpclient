@@ -1,0 +1,505 @@
+#!/usr/bin/python
+
+# provman
+#
+# Copyright (C) 2011 Intel Corporation. All rights reserved.
+#
+# This program is free software; you can redistribute it and/or modify it
+# under the terms and conditions of the GNU Lesser General Public License,
+# version 2.1, as published by the Free Software Foundation.
+#
+# This program is distributed in the hope it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+# FITNESS FOR A PARTICULAR PURPOSE.  See the GNU Lesser General Public License
+# for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program; if not, write to the Free Software Foundation, Inc.,
+# 51 Franklin St - Fifth Floor, Boston, MA 02110-1301 USA.
+#
+# Mark Ryan <mark.d.ryan@intel.com>
+#
+
+import sys
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+import gobject
+import os
+import re
+
+class Node(object):
+
+      def __init__(self, value=None):
+            self.__value = value
+            self.__children = {}
+            self.__meta = {}
+
+      def add_child(self, name, child):
+            if not self.__children.has_key(name):
+                  self.__children[name] = child
+            else:
+                  child = self.__children[name]
+
+            return child
+
+      def replace_child(self, name, child):
+            self.__children[name] = child
+
+      def get_child(self, name):
+            child = None
+            if self.__children.has_key(name):
+                  child = self.__children[name]
+
+            return child
+
+      def get_value(self):
+            return self.__value
+
+      def get_children(self):
+            return self.__children
+
+      def delete_child(self, child_name):
+            retval = False;
+            if self.__children.has_key(child_name):
+                  self.__children.pop(child_name)
+                  retval = True
+            return retval
+
+      def get_child_names(self):
+            retval = "";
+            keys = self.__children.keys()
+            if keys:
+                  for i in keys[:-1]:
+                        retval += i + "/"
+                  retval += keys[-1]
+            return retval
+
+      def set_meta(self, prop, value):
+            self.__meta[prop] = value
+
+      def get_meta(self):
+            return self.__meta
+
+class Cache(object):
+
+      @staticmethod
+      def key_is_valid(key):
+            return key == "/" or re.match("/([^/]+/)*[^/]+$", key)
+
+      @staticmethod
+      def __make_file_name(workspace, bus_type, file_type, imsi):
+            retval = workspace
+            if retval[-1] != '/':
+                  retval += "/"
+            retval += "provman-" + bus_type + "-" + file_type
+            if imsi:
+                  retval += "-" + imsi
+
+            return retval
+
+      def find_node(self, key):
+            node = None
+            if re.match("/([^/]+/)*[^/]+$", key):
+                  nodes = key.split("/")[1:]
+                  current_node = self.__root
+                  for parent in nodes:
+                        current_node = current_node.get_child(parent)
+                        if not current_node:
+                              break
+                  node = current_node
+            elif key == "/":
+                  node = self.__root
+            return node
+
+      def delete_node(self, key):
+            retval = False
+            if re.match("/([^/]+/)*[^/]+$", key):
+                  nodes = key.split("/")[1:]
+                  current_node = self.__root
+                  for parent in nodes[:-1]:
+                        current_node = current_node.get_child(parent)
+                        if not current_node:
+                              break
+                  if current_node:
+                        retval = current_node.delete_child(nodes[-1])
+            elif key == "/":
+                  self.__root = Node()
+                  retval = True
+            return retval
+
+      def __add_prepare(self, key):
+            current_node = None
+            leaf_name = None
+            if re.match("/([^/]+/)*[^/]+$", key):
+                  nodes = key.split("/")[1:]
+                  current_node = self.__root
+                  for parent in nodes[:-1]:
+                        if current_node.get_value():
+                              current_node = None
+                              break
+                        current_node = current_node.add_child(parent, Node())
+                  if current_node:
+                        leaf_name = nodes[-1]
+            return current_node, leaf_name
+
+      def __add_setting(self, key, value):
+            current_node, leaf_name = self.__add_prepare(key)
+            if current_node and leaf_name:
+                  current_node.add_child(leaf_name, Node(value))
+
+      def __add_meta(self, key, prop, value):
+            retval = False
+            current_node = self.find_node(key)
+            if current_node:
+                  current_node.set_meta(prop, value)
+                  retval = True
+            return retval
+
+      def __replace_setting(self, key, value):
+            retval = False
+            current_node, leaf_name = self.__add_prepare(key)
+            if current_node and leaf_name:
+                  current_node.replace_child(leaf_name, Node(value))
+                  retval = True
+            return retval
+
+      @staticmethod
+      def __add_key(dict, path, node):
+            value = node.get_value()
+            if value:
+                  dict[path] = value;
+            else:
+                  for name, child in node.get_children().iteritems():
+                        Cache.__add_key(dict, path + "/" + name, child)
+
+      @staticmethod
+      def __add_meta_key(meta_array, path, node):
+            for prop, value in node.get_meta().iteritems():
+                  meta_array.append((path, prop, value))
+            for name, child in node.get_children().iteritems():
+                  Cache.__add_meta_key(meta_array, path + "/" + name, child)
+
+      def to_dict(self):
+            dict = {}
+            Cache.__add_key(dict, "", self.__root)
+            return dict
+
+      def meta_to_array(self):
+            meta_array = []
+            Cache.__add_meta_key(meta_array, "", self.__root)
+            return meta_array
+
+      def node_to_dict(self, path):
+            dict = {}
+            node = self.find_node(path)
+            if path == "/":
+                  path = ""
+            if node:
+                  Cache.__add_key(dict, path, node)
+            return dict
+
+      def set(self, key, value):
+            return self.__replace_setting(key, value)
+
+      def set_meta(self, key, prop, value):
+            return self.__add_meta(key, prop, value)
+
+      def save(self):
+            try:
+                  fh = open(self.__file_name, "w+")
+                  try:
+                        for key, value in self.to_dict().iteritems():
+                              fh.write(key + " = " + value)
+                              fh.write("\n")
+                  finally:
+                        fh.close()
+            except:
+                  pass
+            try:
+                  fh = open(self.__meta_file_name, "w+")
+                  try:
+                        for meta in self.meta_to_array():
+                              fh.write(meta[0] + "=" + meta[1] +
+                                       "=" + meta[2] )
+                              fh.write("\n")
+                  finally:
+                        fh.close()
+            except:
+                  pass
+
+      def __init__(self, workspace, bus_type, imsi):
+            self.__root = Node()
+            self.__file_name = Cache.__make_file_name(workspace, bus_type,
+                                                      "values", imsi)
+            try:
+                  fh = open(self.__file_name, "r")
+                  try:
+                        for line in fh:
+                              list = line.split("=")
+                              if len(list) == 2:
+                                    key = list[0].strip()
+                                    value = list[1].strip()
+                                    self.__add_setting(key, value)
+                  finally:
+                        fh.close()
+            except:
+                  self.__root = Node()
+
+            self.__meta_file_name = Cache.__make_file_name(workspace, bus_type,
+                                                           "meta", imsi)
+            try:
+                  fh = open(self.__meta_file_name, "r")
+                  try:
+                        for line in fh:
+                              list = line.split("=", 2)
+                              if len(list) == 3:
+                                    key = list[0].strip()
+                                    prop = list[1].strip()
+                                    value = list[2].strip()
+                                    self.__add_meta(key, prop, value)
+                  finally:
+                        fh.close()
+            except:
+                  pass
+
+class Provman(dbus.service.Object):
+
+      def __init__(self, bus_type, bus_instance, workspace):
+            bus_name = dbus.service.BusName("com.intel.provman.server",
+                                            bus=bus_instance)
+            dbus.service.Object.__init__(self, bus_name, "/com/intel/provman")
+            self.__processing = False
+            self.__in_progress = False;
+            self.__workspace = workspace
+            self.__bus_type = bus_type
+            self.__bus_instance = bus_instance
+
+      def __lost_client(self, name):
+
+            # This function seems to get called twice, once immediately
+            # with the client's name before the client has exitted and once
+            # with an empty string when the client disconnects.  Testing
+            # for the empty string here seems to work.
+
+            if not name:
+                  self.End()
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="s",
+                            sender_keyword='sender')
+      def Start(self, imsi, sender = None):
+            if self.__in_progress == True:
+                  raise dbus.exceptions.DBusException(
+                          name="com.intel.provman.Unexpected")
+
+            try:
+                  self.__cache = Cache(self.__workspace, self.__bus_type,
+                                       imsi)
+            except:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unknown")
+            self.__watcher = dbus.bus.NameOwnerWatch(self.__bus_instance,
+                                                     sender,
+                                                     self.__lost_client)
+            self.__in_progress = True;
+
+      @dbus.service.method("com.intel.provman.Settings")
+      def End(self):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            self.__watcher.cancel()
+            self.__cache.save()
+            self.__in_progress = False;
+
+      @dbus.service.method("com.intel.provman.Settings")
+      def Abort(self):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            self.__watcher.cancel()
+            self.__in_progress = False;
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="s",
+                           out_signature="s")
+      def Get(self, key):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            key = key.strip()
+            if not Cache.key_is_valid(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+
+            node = self.__cache.find_node(key)
+            if not node:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.NotFound")
+            value = node.get_value()
+            if not value:
+                  value = node.get_child_names()
+            return value
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="ss")
+      def Set(self, key, value):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+
+            key = key.strip()
+            if not Cache.key_is_valid(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+
+            if not self.__cache.set(key, value):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="sss")
+      def SetMeta(self, key, prop, value):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+
+            key = key.strip()
+            if not Cache.key_is_valid(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+            prop = prop.strip()
+            if not self.__cache.set_meta(key, prop, value):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.NotFound")
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="as",
+                           out_signature="a{ss}")
+      def GetMultiple(self, keys):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            retval = {}
+            for key in keys:
+                  node = self.__cache.find_node(key.strip())
+                  if node:
+                        value = node.get_value()
+                        if not value:
+                              value = node.get_child_names()
+                        retval[key] = value
+            return retval
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="s",
+                             out_signature="a{ss}")
+      def GetAll(self, key):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+
+            key = key.strip()
+            if not Cache.key_is_valid(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+
+            dict = self.__cache.node_to_dict(key)
+            if not dict:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.NotFound")
+            return dict
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="s")
+      def Delete(self, key):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+
+            key = key.strip()
+            if not Cache.key_is_valid(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.BadArgs")
+
+            if not self.__cache.delete_node(key):
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.NotFound")
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="a{ss}",
+                           out_signature="as")
+      def SetMultiple(self, items):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            retval = []
+            for key, value in items.iteritems():
+                  key = key.strip()
+                  if not Cache.key_is_valid(
+                        key) or not self.__cache.set(key, value):
+                        retval.append(key)
+            return retval
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="a(sss)",
+                           out_signature="a(ss)")
+      def SetMultipleMeta(self, items):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            retval = []
+            for el in items:
+                  key, prop, value = el
+                  key = key.strip()
+
+                  # Little hack here.  CPClient adds trailing / to keys when it
+                  # sets meta data values.  The real provman allows this but our
+                  # test harness does not.  For this special case we just remove
+                  # the trailing /
+
+                  if key and key[-1] == '/':
+                        key = key[:-1]
+                  prop = prop.strip()
+                  if not Cache.key_is_valid(
+                        key) or not self.__cache.set_meta(key, prop, value):
+                        retval.append((key, prop))
+            return retval
+
+      @dbus.service.method("com.intel.provman.Settings", in_signature="as",
+                           out_signature="as")
+      def DeleteMultiple(self, items):
+            if self.__in_progress == False:
+                  raise dbus.exceptions.DBusException(
+                        name="com.intel.provman.Unexpected")
+            retval = []
+            for key in items:
+                  key = key.strip()
+                  if not Cache.key_is_valid(
+                        key) or not self.__cache.delete_node(key):
+                        retval.append(key)
+            return retval
+
+if __name__ == "__main__":
+
+      if len(sys.argv) < 3:
+            print "Usage: provman directory bus\n"
+            sys.exit(1)
+
+      workspace = sys.argv[1]
+      if os.path.exists(workspace):
+            if not os.path.isdir(workspace):
+                  print workspace + " is not a directory"
+                  sys.exit(1)
+      else:
+            try:
+                  os.makedirs(workspace)
+            except:
+                  print "Unable to create " + workspace
+                  sys.exit(1)
+
+      mainloop = gobject.MainLoop()
+      dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+
+      if sys.argv[2] == "session":
+            bus_instance = dbus.SessionBus()
+      elif sys.argv[2] == "system":
+            bus_instance = dbus.SystemBus()
+      else:
+            print "bus name must be system or session\n"
+            sys.exit(1)
+
+      server = Provman(sys.argv[2], bus_instance, workspace)
+
+      mainloop.run()
